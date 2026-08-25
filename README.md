@@ -457,7 +457,7 @@ data/         raw/ (input) · processed/ (validated views, BI folder source)
 
 ## Author
 
-**Priyanka K** — data engineering and analytics.
+data engineering and analytics.
 Built end to end: ingestion, modelling, governance, streaming, orchestration,
 alerting, API, reporting and CI.
 
