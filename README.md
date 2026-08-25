@@ -1,4 +1,4 @@
-# Online Retail II — Business Intelligence Platform
+# online-retail-warehouse — Business Intelligence Platform
 
 [![CI](https://github.com/Priyankaakrish/Interactive-data-visualization-and-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/Priyankaakrish/Interactive-data-visualization-and-analysis/actions)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB)](requirements.txt)
