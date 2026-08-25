@@ -1,0 +1,76 @@
+# Online Retail II - BI platform configuration
+source:
+  # Drop online_retail_II.xlsx (43.5 MB, from UCI) into this directory.
+  # Both worksheets - "Year 2009-2010" and "Year 2010-2011" - are read and
+  # concatenated. A .csv of the same data is also accepted.
+  raw_dir: data/raw
+  excel_name: online_retail_II.xlsx
+  # If the real file is absent, generate a schema-identical sample so the
+  # pipeline still runs. Set false to make a missing file a hard error.
+  allow_sample_fallback: true
+
+database:
+  # "embedded" launches a self-contained PostgreSQL via pgserver (no install).
+  # "external" uses dsn below, or the DATABASE_URL environment variable.
+  mode: embedded
+  embedded_dir: .pgdata
+  dsn: "postgresql+psycopg2://postgres:postgres@localhost:5432/retail_bi"
+  load_chunksize: 20000
+
+schemas:
+  staging: staging
+  core: core
+  analytics: analytics
+  monitoring: monitoring
+
+paths:
+  processed: data/processed
+  reports: outputs
+
+cleaning:
+  # StockCodes that are charges and adjustments, not sellable products. Left in
+  # the fact table but flagged, so revenue can be reported with or without them.
+  service_codes: [POST, DOT, C2, M, S, D, B, CRUK, PADS, BANK CHARGES,
+                  AMAZONFEE, ADJUST, ADJUST2, TEST001, TEST002, gift_0001]
+  # Descriptions that are warehouse annotations rather than product names.
+  junk_description_patterns: ["^\\?+$", "check", "damage", "lost", "found",
+                              "smashed", "thrown away", "mouldy", "water damag",
+                              "wrongly", "adjustment", "sold as set", "missing",
+                              "test", "incorrect", "unsaleable", "dotcom",
+                              "amazon", "returned", "crushed", "faulty"]
+  # Guest checkouts have no Customer ID. Kept for revenue, excluded from RFM.
+  keep_missing_customer: true
+
+validation:
+  fail_on_error: true
+  outlier_iqr_multiplier: 3.0
+  # A line priced outside this band is a data error, not a sale.
+  price_bounds: [0.001, 10000.0]
+  # A single line above this quantity is a wholesale order, not an error - but
+  # anything beyond it is flagged for review.
+  max_line_quantity: 80000
+
+monitoring:
+  row_count_drift_pct: 20.0
+  freshness_warn_days: 45
+  freshness_fail_days: 120
+
+kpi:
+  rolling_window_months: 3
+  abc_cutoffs: [0.80, 0.95]
+  # Cohort retention horizon, in months after first purchase.
+  cohort_horizon_months: 12
+  # Currency of the source data.
+  currency_symbol: "£"
+
+theme:
+  name: "Indigo Retail"
+  primary: "#243B6B"
+  secondary: "#3E7CB1"
+  accent: "#E0A458"
+  positive: "#2E8B57"
+  negative: "#B23A48"
+  neutral: "#7C8A9B"
+  grid: "#E4E9F0"
+  background: "#FFFFFF"
+  font: "Segoe UI"

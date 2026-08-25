@@ -1,0 +1,58 @@
+{
+  // ---- Python ----------------------------------------------------------
+  // Point at the venv if you made one; otherwise VS Code uses your global
+  // interpreter and this line can be deleted.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+
+  // Run `python -m src.run_pipeline` correctly: the project root has to be on
+  // the path, or `import src` fails.
+  "python.analysis.extraPaths": ["${workspaceFolder}"],
+  "python.envFile": "${workspaceFolder}/.env",
+
+  // ---- Testing ---------------------------------------------------------
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+
+  // ---- Editor ----------------------------------------------------------
+  "[python]": {
+    "editor.rulers": [88],
+    "editor.formatOnSave": false
+  },
+  "[sql]": {
+    "editor.tabSize": 4,
+    "editor.wordWrap": "off"
+  },
+
+  // ---- Keep the tree readable -----------------------------------------
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.pgdata": true,
+    "**/*.egg-info": true
+  },
+  "search.exclude": {
+    "data/raw/**": true,
+    "data/processed/**": true,
+    "outputs/**": true
+  },
+
+  // ---- SQLTools: browse the warehouse from the sidebar -----------------
+  // Only works against an external PostgreSQL. Set database.mode: external in
+  // config.yaml, run the pipeline once, then click the connection.
+  "sqltools.connections": [
+    {
+      "name": "Retail BI (local PostgreSQL)",
+      "driver": "PostgreSQL",
+      "server": "localhost",
+      "port": 5432,
+      "database": "retail_bi",
+      "username": "postgres",
+      "askForPassword": true
+    }
+  ],
+  "python-envs.defaultEnvManager": "ms-python.python:conda",
+  "python-envs.defaultPackageManager": "ms-python.python:conda"
+}

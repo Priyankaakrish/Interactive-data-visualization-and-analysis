@@ -1,0 +1,259 @@
+// =============================================================================
+// measures.dax - Online Retail II semantic model
+//
+// Source: PostgreSQL, analytics schema. Import analytics.vw_sales_enriched as
+// the fact plus the four core dimensions, or connect direct to core.* and let
+// the model do the joins. All measures live in a columnless "_Measures" table.
+//
+// The one rule this dataset forces on you: revenue is not a single number.
+// Cancellations (C-prefix invoices) carry negative amounts, and postage and
+// fees are not product sales. Every measure below states which it means.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// 1. REVENUE - three definitions, named explicitly
+// -----------------------------------------------------------------------------
+Gross Revenue =
+CALCULATE (
+    SUM ( FactSales[line_revenue] ),
+    FactSales[is_cancellation] = FALSE (),
+    FactSales[is_product_line] = TRUE ()
+)
+
+Returns Value =
+CALCULATE ( SUM ( FactSales[line_revenue] ), FactSales[is_cancellation] = TRUE () )
+
+Service Revenue =                       // postage, carriage, fees, vouchers
+CALCULATE (
+    SUM ( FactSales[line_revenue] ),
+    FactSales[is_cancellation] = FALSE (),
+    FactSales[is_service_line] = TRUE ()
+)
+
+Net Revenue =
+[Gross Revenue] + [Returns Value]       // Returns Value is already negative
+
+Return Rate % =
+DIVIDE ( ABS ( [Returns Value] ), [Gross Revenue] )
+
+// -----------------------------------------------------------------------------
+// 2. VOLUME AND ORDERS
+// -----------------------------------------------------------------------------
+Units Sold =
+CALCULATE (
+    SUM ( FactSales[quantity] ),
+    FactSales[is_cancellation] = FALSE (),
+    FactSales[is_product_line] = TRUE ()
+)
+
+Units Returned =
+CALCULATE ( ABS ( SUM ( FactSales[quantity] ) ), FactSales[is_cancellation] = TRUE () )
+
+Order Count =
+CALCULATE (
+    DISTINCTCOUNT ( FactSales[invoice_no] ),
+    FactSales[is_cancellation] = FALSE ()
+)
+
+Credit Note Count =
+CALCULATE (
+    DISTINCTCOUNT ( FactSales[invoice_no] ),
+    FactSales[is_cancellation] = TRUE ()
+)
+
+Line Count = COUNTROWS ( FactSales )
+
+Average Order Value = DIVIDE ( [Gross Revenue], [Order Count] )
+
+Average Units per Order = DIVIDE ( [Units Sold], [Order Count] )
+
+Average Selling Price = DIVIDE ( [Gross Revenue], [Units Sold] )
+
+Products Sold =
+CALCULATE ( DISTINCTCOUNT ( FactSales[product_key] ),
+            FactSales[is_product_line] = TRUE () )
+
+// -----------------------------------------------------------------------------
+// 3. TIME INTELLIGENCE
+//    DimDate must be marked as the model date table, or every measure here
+//    silently returns the wrong answer at quarter and year grain.
+// -----------------------------------------------------------------------------
+Revenue PY = CALCULATE ( [Gross Revenue], SAMEPERIODLASTYEAR ( DimDate[full_date] ) )
+
+Revenue YoY = [Gross Revenue] - [Revenue PY]
+
+Revenue YoY % = DIVIDE ( [Revenue YoY], [Revenue PY] )
+
+Revenue PM = CALCULATE ( [Gross Revenue], DATEADD ( DimDate[full_date], -1, MONTH ) )
+
+Revenue MoM % = DIVIDE ( [Gross Revenue] - [Revenue PM], [Revenue PM] )
+
+Revenue YTD = TOTALYTD ( [Gross Revenue], DimDate[full_date] )
+
+Revenue 3M Rolling Avg =
+AVERAGEX (
+    VALUES ( DimDate[year_month] ),
+    CALCULATE (
+        [Gross Revenue],
+        DATESINPERIOD ( DimDate[full_date], MAX ( DimDate[full_date] ), -3, MONTH )
+    )
+)
+
+Revenue 12M Rolling =
+CALCULATE (
+    [Gross Revenue],
+    DATESINPERIOD ( DimDate[full_date], MAX ( DimDate[full_date] ), -12, MONTH )
+)
+
+// -----------------------------------------------------------------------------
+// 4. PRODUCT / PARETO
+// -----------------------------------------------------------------------------
+Revenue Rank =
+RANKX ( ALLSELECTED ( DimProduct[description] ), [Gross Revenue],, DESC, DENSE )
+
+Revenue % of Total =
+DIVIDE ( [Gross Revenue], CALCULATE ( [Gross Revenue], ALLSELECTED ( DimProduct ) ) )
+
+Cumulative Revenue =
+VAR ThisRevenue = [Gross Revenue]
+RETURN
+CALCULATE (
+    [Gross Revenue],
+    FILTER ( ALLSELECTED ( DimProduct[description] ), [Gross Revenue] >= ThisRevenue )
+)
+
+Cumulative Revenue % =
+DIVIDE ( [Cumulative Revenue],
+         CALCULATE ( [Gross Revenue], ALLSELECTED ( DimProduct ) ) )
+
+ABC Class =
+VAR Share = [Cumulative Revenue %]
+RETURN SWITCH ( TRUE (), Share <= 0.80, "A", Share <= 0.95, "B", "C" )
+
+Product Return Rate % = DIVIDE ( [Units Returned], [Units Sold] )
+
+// -----------------------------------------------------------------------------
+// 5. CUSTOMER
+//    Roughly a fifth of lines are guest checkouts with no customer id. They
+//    belong in revenue and must be excluded from anything per-customer.
+// -----------------------------------------------------------------------------
+Customer Count = DISTINCTCOUNT ( FactSales[customer_key] )
+
+Identified Revenue =
+CALCULATE ( [Gross Revenue], FactSales[has_customer] = TRUE () )
+
+Guest Revenue =
+CALCULATE ( [Gross Revenue], FactSales[has_customer] = FALSE () )
+
+Guest Revenue Share % = DIVIDE ( [Guest Revenue], [Gross Revenue] )
+
+Revenue per Customer = DIVIDE ( [Identified Revenue], [Customer Count] )
+
+Orders per Customer = DIVIDE ( [Order Count], [Customer Count] )
+
+Customer Recency Days =
+VAR LastOrder = CALCULATE ( MAX ( DimDate[full_date] ),
+                            ALLEXCEPT ( DimCustomer, DimCustomer[customer_key] ) )
+VAR AsOf      = CALCULATE ( MAX ( DimDate[full_date] ), ALL ( DimDate ) )
+RETURN DATEDIFF ( LastOrder, AsOf, DAY )
+
+New Customers =                        // first purchase falls in the period
+CALCULATE (
+    DISTINCTCOUNT ( DimCustomer[customer_key] ),
+    USERELATIONSHIP ( DimDate[full_date], DimCustomer[first_purchase] )
+)
+
+// -----------------------------------------------------------------------------
+// 6. COHORT RETENTION
+//    Bind to analytics.vw_kpi_cohort_retention rather than recomputing in DAX;
+//    the SQL view already resolves the triangular grid.
+// -----------------------------------------------------------------------------
+Cohort Customers = SUM ( CohortRetention[cohort_customers] )
+
+Cohort Active = SUM ( CohortRetention[active_customers] )
+
+Cohort Retention % = DIVIDE ( [Cohort Active], [Cohort Customers] )
+
+Month 1 Retention % =
+CALCULATE ( [Cohort Retention %], CohortRetention[months_since_first] = 1 )
+
+// -----------------------------------------------------------------------------
+// 7. GEOGRAPHY
+// -----------------------------------------------------------------------------
+Domestic Revenue = CALCULATE ( [Gross Revenue], DimCountry[is_domestic] = TRUE () )
+
+Export Revenue = CALCULATE ( [Gross Revenue], DimCountry[is_domestic] = FALSE () )
+
+Export Share % = DIVIDE ( [Export Revenue], [Gross Revenue] )
+
+Countries Served = DISTINCTCOUNT ( FactSales[country_key] )
+
+// -----------------------------------------------------------------------------
+// 8. DATA QUALITY AND PIPELINE HEALTH
+//    Bind to monitoring.vw_dq_latest and monitoring.vw_run_history so the report
+//    can state its own trustworthiness instead of assuming it.
+// -----------------------------------------------------------------------------
+DQ Checks Run = COUNTROWS ( DataQuality )
+
+DQ Checks Passed = CALCULATE ( [DQ Checks Run], DataQuality[passed] = TRUE () )
+
+DQ Pass Rate % = DIVIDE ( [DQ Checks Passed], [DQ Checks Run] )
+
+DQ Critical Failures =
+CALCULATE ( [DQ Checks Run],
+            DataQuality[severity] = "ERROR", DataQuality[passed] = FALSE () )
+
+Rows Quarantined = SUM ( RunHistory[rows_quarantined] )
+
+Quarantine Rate % =
+DIVIDE ( SUM ( RunHistory[rows_quarantined] ), SUM ( RunHistory[rows_ingested] ) )
+
+Last Run Status = SELECTEDVALUE ( RunHistory[status], "UNKNOWN" )
+
+Hours Since Last Run =
+VAR LastRun = CALCULATE ( MAX ( RunHistory[started_at] ), ALL ( RunHistory ) )
+RETURN DATEDIFF ( LastRun, NOW (), HOUR )
+
+Pipeline Health =
+SWITCH ( TRUE (),
+    [Last Run Status] <> "SUCCESS",  "RED - last run failed",
+    [DQ Critical Failures] > 0,      "RED - critical data-quality failure",
+    [Hours Since Last Run] > 24,     "AMBER - pipeline stale",
+    [DQ Pass Rate %] < 1,            "AMBER - warnings present",
+                                     "GREEN - all checks passed" )
+
+// -----------------------------------------------------------------------------
+// 9. TARGETS AND CONDITIONAL FORMATTING
+// -----------------------------------------------------------------------------
+Revenue Target = [Revenue PY] * 1.10
+
+Revenue vs Target % = DIVIDE ( [Gross Revenue] - [Revenue Target], [Revenue Target] )
+
+Return Rate Target = 0.02
+
+KPI Colour Revenue =
+SWITCH ( TRUE (),
+    [Revenue vs Target %] >= 0,     "#2E8B57",
+    [Revenue vs Target %] >= -0.05, "#E0A458",
+                                    "#B23A48" )
+
+KPI Colour Returns =
+IF ( [Return Rate %] <= [Return Rate Target], "#2E8B57", "#B23A48" )
+
+// -----------------------------------------------------------------------------
+// 10. FIELD PARAMETER SUPPORT
+// -----------------------------------------------------------------------------
+Selected Metric = SELECTEDVALUE ( MetricSelector[Metric], "Gross Revenue" )
+
+Dynamic Measure =
+SWITCH ( [Selected Metric],
+    "Gross Revenue", [Gross Revenue],
+    "Net Revenue",   [Net Revenue],
+    "Units Sold",    [Units Sold],
+    "Order Count",   [Order Count],
+    "Customers",     [Customer Count],
+    [Gross Revenue] )
+
+Dynamic Title =
+"Monthly " & [Selected Metric] & " - "
+    & SELECTEDVALUE ( DimCountry[country], "all markets" )

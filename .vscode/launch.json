@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // F5 runs this. Breakpoints work anywhere in src/.
+      "name": "Run pipeline",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.run_pipeline",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Run pipeline (no dashboards)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.run_pipeline",
+      "args": ["--no-dashboards"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Generate sample data",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/tools/generate_sample_retail.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Debug current test file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-v"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}

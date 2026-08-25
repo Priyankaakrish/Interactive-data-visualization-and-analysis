@@ -1,0 +1,13 @@
+.git
+.pgdata
+data/raw
+data/stream
+outputs
+notebooks
+powerbi
+__pycache__
+*.pyc
+.venv
+.pytest_cache
+*.pbix
+*.xlsx

@@ -1,0 +1,14 @@
+# Lightweight image for the Kafka replay producer.
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+
+RUN pip install pandas==2.2.2 kafka-python-ng==2.2.3 \
+ && useradd --create-home --uid 10002 producer
+
+WORKDIR /app
+COPY streaming/ /app/streaming/
+RUN chown -R producer:producer /app
+USER producer
+
+ENTRYPOINT ["python", "-m", "streaming.producer"]

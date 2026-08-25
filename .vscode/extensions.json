@@ -1,0 +1,12 @@
+{
+  // VS Code will offer to install these when the folder is opened.
+  "recommendations": [
+    "ms-python.python",              // interpreter, debugging, test discovery
+    "ms-python.vscode-pylance",      // type checking and navigation
+    "ms-toolsai.jupyter",            // notebooks, if you add EDA notebooks
+    "mtxr.sqltools",                 // browse PostgreSQL from the sidebar
+    "mtxr.sqltools-driver-pg",       // the PostgreSQL driver for SQLTools
+    "mechatroner.rainbow-csv",       // makes data/processed/*.csv readable
+    "redhat.vscode-yaml"             // schema-aware editing of config.yaml
+  ]
+}

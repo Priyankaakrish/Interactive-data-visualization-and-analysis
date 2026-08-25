@@ -1,0 +1,19 @@
+# Real-time extension. Install alongside the existing requirements.txt.
+#
+#   pip install -r requirements-realtime.txt
+
+# --- API ---------------------------------------------------------------
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+
+# --- streaming ---------------------------------------------------------
+kafka-python-ng==2.2.3
+pyspark==3.5.1          # only needed to run the consumer natively
+
+# --- orchestration -----------------------------------------------------
+prefect==3.0.4
+
+# --- testing -----------------------------------------------------------
+pytest==8.3.3
+httpx==0.27.2
