@@ -5,13 +5,14 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791)](sql/)
 [![Kafka](https://img.shields.io/badge/Kafka-3.7%20KRaft-231F20)](deployment/docker-compose.yml)
 [![Spark](https://img.shields.io/badge/Spark-Structured%20Streaming-E25A1C)](streaming/)
+[![Power BI](https://img.shields.io/badge/Power%20BI-48%20DAX%20measures-F2C811)](powerbi/)
 
 An end-to-end business intelligence platform on the UCI **Online Retail II**
 dataset: 1,067,371 real transactions from a UK online gift wholesaler, December
 2009 to December 2011.
 
 Pandas cleans and validates, PostgreSQL stores and aggregates under row-level
-security, Kafka and Spark carry a streaming path, FastAPI and Power BI present,
+security, Kafka and Spark carry a streaming path, Power BI and FastAPI present,
 Airflow schedules, and a monitoring layer reports whether any of it can be
 trusted.
 
@@ -24,10 +25,10 @@ trusted.
 | Metric | Value |
 |---|---|
 | Gross revenue | £19,464,639.76 |
-| Net revenue | £18.2M |
-| Returns value | £1.3M (6.7%) |
+| Net revenue | £18.17M |
+| Returns value | £1.3M (6.65%) |
 | Orders | 40,122 |
-| Average order value | £485 |
+| Average order value | £485.14 |
 | Units sold | 11,104,561 |
 | Distinct products | 4,726 |
 | Identified customers | 5,941 |
@@ -37,7 +38,116 @@ trusted.
 
 ---
 
-## 2. Quick start
+## 2. Reporting layer
+
+Four Power BI pages over the published extracts, with 48 DAX measures and
+report-level row-level security mirroring the database policies.
+
+### Retail Performance
+
+![Retail Performance](docs/screenshots/powerbi_retail_performance.png)
+
+Net and gross revenue side by side — the distinction §4 argues for, made visible
+rather than assumed. Monthly revenue with a three-month rolling average shows the
+Q4 seasonal peak in both years.
+
+Export markets are charted **separately from the UK**, because the UK is 85.4% of
+revenue and flattens everything sharing an axis with it.
+
+| Market | Revenue |
+|---|---|
+| United Kingdom | £16.62M |
+| EIRE | £0.62M |
+| Netherlands | £0.55M |
+| Germany | £0.38M |
+| France | £0.31M |
+
+Regional split: Domestic 85.4% · Europe 13.1% · Rest of World 1.5%.
+
+### Data Quality
+
+![Data Quality](docs/screenshots/powerbi_data_quality.png)
+
+The page that makes the validation gate legible to a non-engineer: 25 checks run
+**before** the load, 21 passed, zero critical failures.
+
+| Category | Pass rate |
+|---|---|
+| Uniqueness | 6/6 — 100% |
+| Referential | 4/4 — 100% |
+| Validity | 5/6 — 83% |
+| Completeness | 4/6 — 67% |
+| Consistency | 2/3 — 67% |
+
+The four WARN trips are documented properties of the source, not regressions:
+
+| Check | Severity | Failing rows |
+|---|---|---|
+| Customer is identified | WARN | 229,018 — guest checkout, by design |
+| Line revenue has no extreme outliers | WARN | 54,545 — wholesale bulk orders |
+| Product has a description | WARN | 2 |
+| Credit notes contain no positive product value | WARN | 1 |
+
+Every ERROR-severity check passes at zero failing rows. That is the point: an
+ERROR aborts the pipeline, so PostgreSQL only ever contains data that passed.
+
+### Customer Insights
+
+![Customer Insights](docs/screenshots/powerbi_customer_insights.png)
+
+RFM segmentation over 5,941 identified customers, with the concentration that
+drives every retention decision:
+
+| Segment | Customers | Revenue |
+|---|---|---|
+| Champions | 1,291 | £11.40M |
+| Needs Attention | 1,168 | £2.15M |
+| At Risk — High Value | 390 | £1.20M |
+| Loyal | 608 | £0.64M |
+| Hibernating | 1,486 | £0.45M |
+| At Risk | 462 | £0.34M |
+| New / Promising | 441 | £0.19M |
+
+**Champions are 21.7% of customers and 69.6% of revenue.** Repeat rate is 72.4%,
+revenue per customer £2,799.
+
+The RFM grid crosses recency against frequency, and the cohort retention curve
+shows the shape that matters commercially: a steep drop after month one, then a
+long stable tail around 15–20%. Acquisition is not the problem; the first repeat
+purchase is.
+
+### Product Performance
+
+![Product Performance](docs/screenshots/powerbi_product_performance.png)
+
+Pareto and ABC concentration across 4,726 products.
+
+| Class | Products | Revenue |
+|---|---|---|
+| A | 1,034 | £15.57M |
+| B | 1,260 | £2.92M |
+| C | 2,432 | £0.97M |
+
+**1,034 products — 22% of the catalogue — carry 80% of revenue.** The remaining
+2,432 C-class products contribute £0.97M between them.
+
+| Top product | Revenue |
+|---|---|
+| REGENCY CAKESTAND | £164K |
+| WHITE HANGING HEART | £148K |
+| PAPER CRAFT BIRDIE | £121K |
+| JUMBO BAG RETROSPOT | £106K |
+| ASSORTED BIRD ORN | £94K |
+
+Return rate is plotted against revenue on a log scale with the 2.4% mean marked,
+so the high-revenue high-return products separate visually from ordinary noise.
+
+**Also available:** a self-contained live dashboard at `/dashboard`, polling
+`/api/v1/live/*` every five seconds against the streaming tables.
+
+---
+
+## 3. Quick start
 
 ```bash
 pip install -r requirements.txt
@@ -70,9 +180,9 @@ and validation layers get a real workout on a fresh clone.
 
 ---
 
-## 3. What makes this more than a chart exercise
+## 4. What makes this more than a chart exercise
 
-**Revenue is defined three ways, on purpose.** This dataset records cancellations
+**Revenue is defined four ways, on purpose.** This dataset records cancellations
 as `C`-prefix invoices with negative quantities. Most published analyses simply
 delete them and report gross revenue as though it were net. Here `gross_revenue`,
 `returns_value`, `net_revenue` and `service_revenue` are separate, named, and
@@ -102,21 +212,21 @@ cohort views exclude them explicitly.
 ERROR-severity failure raises and the load never happens, so PostgreSQL only ever
 contains data that passed. Constraints are then applied after the load so the
 database independently re-checks what Python asserted — if they disagree, the run
-is wrong. Currently **21/25 pass, zero ERROR**; the four WARN trips are documented
-properties of the source.
+is wrong.
 
 **The pipeline reports on itself.** Because validation runs before the load, the
 database would otherwise hold no evidence of what was caught. The `monitoring`
 schema fixes that: run history, quality trend, row-count drift and a
-RED/AMBER/GREEN health view.
+RED/AMBER/GREEN health view — surfaced on the Data Quality page above.
 
 ---
 
-## 4. Dimensional model
+## 5. Dimensional model
 
 Kimball star, then normalised: four dimensions decomposed into nine so
 referential integrity is enforced by the database rather than assumed. Four
-`vw_dim_*_flat` views flatten them back into the star shape BI tools expect.
+`vw_dim_*_flat` views flatten them back into the star shape BI tools and DAX
+expect.
 
 **Proof the decomposition is lossless:** after re-pointing every analytics view
 at the flattening views, gross revenue stayed at £19,464,639.76 and orders at
@@ -128,7 +238,7 @@ Build order: `01_schemas` → `02_constraints` → `03_analytics_views` →
 
 ---
 
-## 5. Row-level security
+## 6. Row-level security
 
 | Role | Rows visible | Scope |
 |---|---|---|
@@ -152,9 +262,11 @@ Three controls distinguish this from a policy that merely exists:
    function, verified by having a region-scoped role attempt to widen its own
    scope. It stayed at 79,157.
 
+The same role model is mirrored at report level in Power BI — see `powerbi/RLS.md`.
+
 ---
 
-## 6. Streaming
+## 7. Streaming
 
 Kafka carries invoice lines; Spark Structured Streaming aggregates them into
 event-time windows with a two-hour watermark and merges into PostgreSQL on the
@@ -179,7 +291,7 @@ not release it, `rm -sf` plus `volume rm` does.
 
 ---
 
-## 7. API and dashboard
+## 8. API
 
 FastAPI, 14 versioned endpoints under `/api/v1`, OpenAPI schema at `/docs`.
 
@@ -199,7 +311,7 @@ old contract rather than silently altering responses under consumers.
 
 ---
 
-## 8. Business alerting
+## 9. Business alerting
 
 Five rules over the warehouse, thresholds in a table rather than hard-coded.
 Grouping is **one message per rule, not per row** — 1,005 dead products is one
@@ -218,36 +330,21 @@ lifetime value, highly regular cadence, four standard intervals overdue.
 
 ---
 
-## 9. Analytics delivered
+## 10. Analytics delivered
 
 | Analysis | Method | Output |
 |---|---|---|
-| RFM segmentation | Quintile scoring on recency, frequency, monetary | 5,850 scored customers |
+| RFM segmentation | Quintile scoring on recency, frequency, monetary | 5,850 scored customers, 7 segments |
 | Cohort retention | Monthly acquisition cohorts | 25 cohorts · 325 cells |
-| Pareto / ABC | Cumulative revenue concentration | A/B/C class per SKU |
+| Pareto / ABC | Cumulative revenue concentration | 1,034 A-class carrying 80% |
 | Market basket | Pairwise co-occurrence within invoices | 48,413 pairs |
 | Clustering | KMeans, k by silhouette score | Segment profiles |
 | Dimensionality reduction | PCA | 2-D cluster validation |
 | Anomaly detection | IsolationForest | Outlier orders and customers |
 
 Exploratory work is in `notebooks/`; production forms are SQL views in
-`sql/03_analytics_views.sql`, so the warehouse, API and Power BI read one
+`sql/03_analytics_views.sql`, so the warehouse, the API and Power BI read one
 definition rather than three drifting copies.
-
----
-
-## 10. Dashboards
-
-**Business** — Executive, Product, Country, Customer, Cohort, Returns, Basket.
-Revenue trend and gross-to-net bridge, Pareto and ABC concentration, export
-markets charted separately from the UK (~90% of revenue, and it flattens
-everything it shares an axis with), RFM segments, cohort retention matrix.
-
-**Monitoring** — Health, Data Quality, Volume Drift, Cleansing Trail. Run history
-and duration, pass rates by category and severity, drift against the previous
-successful run, and the full audit trail of what cleaning did.
-
-**Live** — `/dashboard`, polling `/api/v1/live/*` every 5 seconds.
 
 ---
 
@@ -292,9 +389,9 @@ A code path that is imported but never invoked is not tested by anything, and
 ### 11.2 The embedded-database conflict
 
 `config.yaml` runs the batch pipeline against an embedded PostgreSQL started
-in-process by `pgserver` (ADR-001). That server is a Windows process bound to a
-local socket, so an Airflow task inside WSL cannot reach it — and installing
-`pgserver` inside Linux would only create a second, empty warehouse.
+in-process by `pgserver` (ADR-001). That server is a host process bound to a local
+socket, so an Airflow task inside WSL cannot reach it — and installing `pgserver`
+inside Linux would only create a second, empty warehouse.
 
 The orchestrated path therefore uses `config.airflow.yaml`, pointing at the
 Dockerised PostgreSQL on port 55432. The cost is two warehouses holding separate
@@ -310,7 +407,7 @@ exists purely because portability was chosen over a shared server.
 |---|---|
 | Test | pytest — no warehouse or broker required |
 | Lint | ruff |
-| SQL validation | Migration files parse and apply cleanly |
+| SQL validation | Migration files parse and apply cleanly against PostgreSQL 16 |
 | Image build | Multi-stage, non-root, healthcheck present |
 
 Tests run without infrastructure because alert logic imports its database
@@ -320,6 +417,10 @@ Rules were validated first against a synthetic fixture with deliberately planted
 anomalies — each rule caught its planted case — and only then against the real
 1M-row warehouse. Passing on real data alone proves a rule runs; passing on
 planted data proves it detects.
+
+**What CI caught on its first run:** an undeclared dependency. PyYAML worked
+locally because another package pulled it in transitively; a clean install
+exposed that `src/config.py` imports it directly.
 
 ---
 
@@ -352,7 +453,8 @@ defect that destroys trust in a finance dashboard.
 | Broker | Single-node KRaft | 3-broker MSK, RF=3, `min.insync=2` |
 | Compute | Local Spark | EMR / Databricks with autoscaling |
 | Runtime | Docker Compose | ECS or EKS, rolling deploy |
-| Airflow | SQLite + SequentialExecutor | Postgres metadata DB, Local/Celery executor |
+| Airflow | SQLite + SequentialExecutor | Postgres metadata DB, Celery or Kubernetes |
+| Reporting | Power BI Desktop | Power BI Service with scheduled refresh and workspace RLS |
 | Secrets | Environment file | Secrets Manager, rotated |
 | Lineage | Documented | OpenLineage / Marquez |
 
@@ -379,6 +481,9 @@ independently will discount everything above it.
   not align with those already in the warehouse, the merge inserts wrong keys
   **silently** — it will not error. This needs before/after row-count and revenue
   reconciliation before the incremental path can be trusted.
+- **48 DAX measures duplicate logic that already exists in SQL.** Nothing
+  mechanically enforces that they agree. A semantic layer would define each
+  measure once; this works because one person holds both in their head.
 - **Airflow runs on SQLite with SequentialExecutor.** Fine for demonstrating
   scheduling; not a topology for parallel task execution.
 - **The API resolves its stream connection once at startup** and does not lazily
@@ -400,11 +505,12 @@ independently will discount everything above it.
 
 1. Lazy reconnect with backoff in the API lifespan
 2. Reconcile `build_star` surrogate keys on subsets
-3. Lag measured against the producer's simulated clock
-4. Year-over-year baseline for `demand_surge`
-5. Lift and confidence on market-basket pairs
-6. Dead-letter topic for malformed stream events
-7. OpenLineage emission from Airflow tasks
+3. Semantic layer so SQL and DAX share one measure definition
+4. Lag measured against the producer's simulated clock
+5. Year-over-year baseline for `demand_surge`
+6. Lift and confidence on market-basket pairs
+7. Dead-letter topic for malformed stream events
+8. OpenLineage emission from Airflow tasks
 
 ---
 
@@ -423,22 +529,22 @@ orchestrated path.
 ## 18. Layout
 
 ```
-src/          config ingest clean validate db analytics monitoring
-              viz_library dashboard build_dashboards export run_pipeline
-              business_alerts alerts
-sql/          01 schemas · 02 constraints · 03 analytics · 04 monitoring
-              05 snowflake · 06 row-level security · 07 streaming · 08 alerts
-api/          FastAPI app, routers, live dashboard
-streaming/    Kafka producer · Spark consumer · replay export
+src/           config ingest clean validate db analytics monitoring
+               viz_library dashboard build_dashboards export run_pipeline
+               business_alerts alerts
+sql/           01 schemas · 02 constraints · 03 analytics · 04 monitoring
+               05 snowflake · 06 row-level security · 07 streaming · 08 alerts
+api/           FastAPI app, routers, live dashboard
+streaming/     Kafka producer · Spark consumer · replay export
 orchestration/ watermark incremental load · Prefect flow
-dags/         Airflow DAG
-notebooks/    EDA: RFM, cohorts, KMeans, PCA, IsolationForest
-powerbi/      measures.dax · MODEL.md
-deployment/   Dockerfile · docker-compose.yml
-tools/        sample generator · diagram generator · Airflow setup
-tests/        pytest suite
-docs/         ARCHITECTURE.md · INTERVIEW_NOTES.md · pipeline_flow.png
-data/         raw/ (input) · processed/ (validated views, BI folder source)
+dags/          Airflow DAG
+notebooks/     EDA: RFM, cohorts, KMeans, PCA, IsolationForest
+powerbi/       measures.dax · MODEL.md · RLS.md
+deployment/    Dockerfile · docker-compose.yml
+tools/         sample generator · diagram generator · Airflow setup
+tests/         pytest suite
+docs/          ARCHITECTURE.md · INTERVIEW_NOTES.md · pipeline_flow.png · screenshots/
+data/          raw/ (input) · processed/ (validated views, BI folder source)
 ```
 
 ---
@@ -451,13 +557,14 @@ data/         raw/ (input) · processed/ (validated views, BI folder source)
 | `TROUBLESHOOTING.md` | Eleven real failures, causes and fixes |
 | `docs/ARCHITECTURE.md` | Dimensional model detail and reasoning |
 | `docs/INTERVIEW_NOTES.md` | Design decisions and their defences |
-| `powerbi/MODEL.md` | Report model and measure catalogue |
+| `powerbi/MODEL.md` | Report model and 48-measure catalogue |
+| `powerbi/RLS.md` | Report-level security roles |
 
 ---
 
 ## Author
 
-data engineering and analytics.
+**Priyanka K** — data engineering and analytics.
 Built end to end: ingestion, modelling, governance, streaming, orchestration,
 alerting, API, reporting and CI.
 
