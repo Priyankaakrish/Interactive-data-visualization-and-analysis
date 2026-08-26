@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas numpy SQLAlchemy
+          pip install pandas numpy SQLAlchemy pyyaml
           pip install fastapi "pydantic>=2" httpx pytest pytest-cov
 
       - name: Compile every module
