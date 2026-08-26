@@ -22,7 +22,6 @@ import logging
 import sys
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pandas as pd
 
@@ -172,7 +171,7 @@ def run(config_path: str | None = None, build_dash: bool = True) -> dict:
             # ------------------------------------------ 6. PUBLISH ----------
             _banner("6. VISUALIZATION LIBRARY -> BI OUTPUTS")
             processed = cfg.path("processed")
-            frames = {k: v for k, v in data.items()}
+            frames = dict(data.items())
             frames["dq_results"] = results
             frames["user_access"] = db.fetch(engine, """
                 SELECT user_email, display_name, job_title, access_scope,

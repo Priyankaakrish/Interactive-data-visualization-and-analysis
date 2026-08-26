@@ -82,11 +82,11 @@ class Dashboard:
         self.theme = theme
         self.pages: dict[str, list[tuple[go.Figure | str, str]]] = {}
 
-    def add(self, page: str, figure: go.Figure, width: str = "w12") -> "Dashboard":
+    def add(self, page: str, figure: go.Figure, width: str = "w12") -> Dashboard:
         self.pages.setdefault(page, []).append((figure, width))
         return self
 
-    def add_note(self, page: str, html: str) -> "Dashboard":
+    def add_note(self, page: str, html: str) -> Dashboard:
         self.pages.setdefault(page, []).append((html, "note"))
         return self
 

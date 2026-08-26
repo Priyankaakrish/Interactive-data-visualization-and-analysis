@@ -25,7 +25,6 @@ quarantined with a reason rather than silently dropped.
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass, field
 
 import numpy as np

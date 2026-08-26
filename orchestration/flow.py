@@ -86,9 +86,9 @@ def refresh_task(config_path: str | None = None) -> int:
 @task(name="check-monitoring", retries=1)
 def monitor_task(config_path: str | None = None) -> dict:
     import pandas as pd
-    from src.config import load_config
 
     from src import db
+    from src.config import load_config
 
     cfg = load_config(config_path)
 

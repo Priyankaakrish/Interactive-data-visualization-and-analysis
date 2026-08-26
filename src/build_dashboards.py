@@ -24,9 +24,8 @@ from .dashboard import Dashboard
 
 # --------------------------------------------------------------------------
 def build_business_dashboard(cfg: Config, data: dict[str, pd.DataFrame],
-                             provenance: dict) -> "Path":  # noqa: F821
+                             provenance: dict) -> Path:  # noqa: F821
     theme = cfg.theme
-    cur = cfg.currency
     d = Dashboard(
         "Online Retail II - Business Intelligence",
         f"UK online gift retailer &middot; {provenance.get('date_min'):%b %Y} to "
@@ -265,7 +264,7 @@ def build_monitoring_dashboard(cfg: Config, runs: pd.DataFrame,
                                dq_latest: pd.DataFrame, dq_history: pd.DataFrame,
                                drift: pd.DataFrame, cleansing: pd.DataFrame,
                                health_row: pd.DataFrame,
-                               freshness_row: pd.DataFrame) -> "Path":  # noqa: F821
+                               freshness_row: pd.DataFrame) -> Path:  # noqa: F821
     theme = cfg.theme
     status = (health_row["health_status"].iloc[0]
               if not health_row.empty else "UNKNOWN")

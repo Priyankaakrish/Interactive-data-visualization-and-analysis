@@ -1,11 +1,14 @@
 """Render the end-to-end pipeline diagram into docs/pipeline_flow.png."""
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 fig, ax = plt.subplots(figsize=(11.6, 13.2))
-ax.set_xlim(0, 100); ax.set_ylim(0, 100); ax.axis("off")
+ax.set_xlim(0, 100)
+ax.set_ylim(0, 100)
+ax.axis("off")
 
 PAL = {"blue": ("#eef4fd", "#1a5fb4"), "orange": ("#fdf1e3", "#c2691a"),
        "teal": ("#e6f5f6", "#0f7b8a"), "green": ("#eaf7ee", "#2d7d46"),
@@ -60,7 +63,8 @@ box(6.0, 29.0, 34.0, 8.0, "FastAPI + Docker",
 box(44.0, 29.0, 34.0, 8.0, "Power BI",
     "4 pages  |  48 DAX measures\nreport-level RLS", "amber", 11.5, 8.0)
 
-down(23.0, 29.0, 25.0); down(61.0, 29.0, 25.0)
+down(23.0, 29.0, 25.0)
+down(61.0, 29.0, 25.0)
 ax.plot([23.0, 61.0], [25.0, 25.0], color="#3a424b", lw=2.0, zorder=1)
 ax.add_patch(FancyArrowPatch((42.0, 25.0), (42.0, 21.0), arrowstyle="-|>",
     mutation_scale=18, linewidth=2.0, color="#3a424b", zorder=1))

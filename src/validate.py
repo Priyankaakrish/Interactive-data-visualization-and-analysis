@@ -13,9 +13,9 @@ the evidence of what was caught would live only in a console log.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable
 
 import numpy as np
 import pandas as pd

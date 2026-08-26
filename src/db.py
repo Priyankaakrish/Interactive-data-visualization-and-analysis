@@ -130,7 +130,7 @@ def _split_statements(sql: str) -> list[str]:
 
 def _is_comment_only(chunk: str) -> bool:
     body = re.sub(r"/\*.*?\*/", "", chunk, flags=re.S)
-    body = "\n".join(l for l in body.splitlines() if not l.strip().startswith("--"))
+    body = "\n".join(ln for ln in body.splitlines() if not ln.strip().startswith("--"))
     return not body.strip()
 
 

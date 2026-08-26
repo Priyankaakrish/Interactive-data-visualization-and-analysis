@@ -17,8 +17,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.clean import (CleansingLog, Quarantine, build_dim_customer,
-                       build_dim_product, build_star, clean_transactions)
+from src.clean import (
+    CleansingLog,
+    Quarantine,
+    build_dim_customer,
+    build_dim_product,
+    build_star,
+    clean_transactions,
+)
 from src.config import load_config
 from src.ingest import SchemaError, normalise_columns
 from src.validate import ValidationError, default_rules, run_validation, scorecard

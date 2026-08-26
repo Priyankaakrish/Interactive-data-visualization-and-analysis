@@ -8,9 +8,8 @@ repo as an alternative runner; this is the scheduled path.
 """
 from __future__ import annotations
 
-import os
-
 import logging
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path

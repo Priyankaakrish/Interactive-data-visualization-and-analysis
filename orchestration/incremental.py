@@ -19,9 +19,9 @@ from datetime import datetime
 
 import pandas as pd
 import sqlalchemy as sa
-from src.config import load_config
 
 from src import clean, db, ingest, validate
+from src.config import load_config
 
 log = logging.getLogger("incremental")
 
