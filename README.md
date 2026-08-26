@@ -45,7 +45,8 @@ report-level row-level security mirroring the database policies.
 
 ### Retail Performance
 
-![Retail Performance](docs/screenshots/powerbi_retail_performance.png)
+![Retail Performance] <img width="1280" height="720" alt="page1_mockup" src="https://github.com/user-attachments/assets/41bebfdc-1408-4121-ab52-82ed23bee37f" />
+
 
 Net and gross revenue side by side — the distinction §4 argues for, made visible
 rather than assumed. Monthly revenue with a three-month rolling average shows the
@@ -66,7 +67,8 @@ Regional split: Domestic 85.4% · Europe 13.1% · Rest of World 1.5%.
 
 ### Data Quality
 
-![Data Quality](docs/screenshots/powerbi_data_quality.png)
+![Data Quality] <img width="1280" height="720" alt="page4_mockup" src="https://github.com/user-attachments/assets/d0c9c3fc-65ea-4b5b-a5bc-92824d0ac0b1" />
+
 
 The page that makes the validation gate legible to a non-engineer: 25 checks run
 **before** the load, 21 passed, zero critical failures.
@@ -93,7 +95,8 @@ ERROR aborts the pipeline, so PostgreSQL only ever contains data that passed.
 
 ### Customer Insights
 
-![Customer Insights](docs/screenshots/powerbi_customer_insights.png)
+![Customer Insights] <img width="1280" height="720" alt="page3_mockup" src="https://github.com/user-attachments/assets/c51d2bb5-efb9-4435-823e-355f90328fb9" />
+
 
 RFM segmentation over 5,941 identified customers, with the concentration that
 drives every retention decision:
@@ -118,7 +121,8 @@ purchase is.
 
 ### Product Performance
 
-![Product Performance](docs/screenshots/powerbi_product_performance.png)
+![Product Performance] <img width="1280" height="720" alt="page2_mockup" src="https://github.com/user-attachments/assets/05a358bb-f7ec-407a-9146-d91ce9cd940f" />
+
 
 Pareto and ABC concentration across 4,726 products.
 
