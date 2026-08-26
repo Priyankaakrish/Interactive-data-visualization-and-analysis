@@ -506,7 +506,7 @@ independently will discount everything above it.
 ---
 
 ## 16. Roadmap
-
+useful features
 1. Lazy reconnect with backoff in the API lifespan
 2. Reconcile `build_star` surrogate keys on subsets
 3. Semantic layer so SQL and DAX share one measure definition
